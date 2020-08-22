@@ -8,13 +8,19 @@ import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
-import com.in28minutes.courses.CourseDetails;
-import com.in28minutes.courses.GetAllCourseDetailsRequest;
-import com.in28minutes.courses.GetAllCourseDetailsResponse;
-import com.in28minutes.courses.GetCourseDetailsRequest;
-import com.in28minutes.courses.GetCourseDetailsResponse;
+import com.seanmeedev.courses.CourseDetails;
+import com.seanmeedev.courses.DeleteCourseDetailsRequest;
+import com.seanmeedev.courses.DeleteCourseDetailsResponse;
+import com.seanmeedev.courses.GetAllCourseDetailsRequest;
+import com.seanmeedev.courses.GetAllCourseDetailsResponse;
+import com.seanmeedev.courses.GetCourseDetailsRequest;
+import com.seanmeedev.courses.GetCourseDetailsResponse;
+import com.seanmeedev.courses.InsertCourseDetailsRequest;
+import com.seanmeedev.courses.InsertCourseDetailsResponse;
 import com.seanmeedev.soap.services.soapcoursemanagement.soap.bean.Course;
+import com.seanmeedev.soap.services.soapcoursemanagement.soap.exception.CourseNotFoundException;
 import com.seanmeedev.soap.services.soapcoursemanagement.soap.service.CourseDetailsService;
+import com.seanmeedev.soap.services.soapcoursemanagement.soap.service.CourseDetailsService.Status;
 
 @Endpoint
 public class CourseDetailsEndpoint {
@@ -29,13 +35,56 @@ public class CourseDetailsEndpoint {
 	// http://in28minutes.com/courses
 	// GetCourseDetailsRequest
 	
-	@PayloadRoot(namespace = "http://in28minutes.com/courses", 
-			localPart = "GetCourseDetailsRequest")	
+	@PayloadRoot
+	(namespace = "http://seanmeedev.com/courses", localPart = "GetCourseDetailsRequest")	
 	@ResponsePayload
 	public GetCourseDetailsResponse processCourseDetailsRequest
 	(@RequestPayload GetCourseDetailsRequest request) {
 		Course course = service.findById(request.getId());
+		
+		if(course ==null)
+			throw new CourseNotFoundException("Invalid Course Id: " + request.getId());
 		return mapCourseDetails(course);
+	}
+	
+	@PayloadRoot
+	(namespace = "http://seanmeedev.com/courses", localPart = "GetAllCourseDetailsRequest")	
+	@ResponsePayload
+	public GetAllCourseDetailsResponse processAllCourseDetailsRequest
+	(@RequestPayload GetAllCourseDetailsRequest request) {
+		List<Course> courses = service.findAll();
+		return mapAllCourseDetails(courses);
+	}
+	
+	@PayloadRoot
+	(namespace = "http://seanmeedev.com/courses", localPart = "InsertCourseDetailsRequest")
+	@ResponsePayload
+	public InsertCourseDetailsResponse processInsertCourseDetailsRequest
+	(@RequestPayload InsertCourseDetailsRequest request) {
+		InsertCourseDetailsResponse response = new InsertCourseDetailsResponse();
+		int id = request.getCourseDetails().getId();
+		String name = request.getCourseDetails().getName();
+		String description = request.getCourseDetails().getDescription();
+		Status status = service.addCourse(new Course(id , name, description));
+		response.setStatus(mapStatus(status));
+		return response;		
+	}
+
+	@PayloadRoot
+	(namespace = "http://seanmeedev.com/courses", localPart = "DeleteCourseDetailsRequest")	
+	@ResponsePayload
+	public DeleteCourseDetailsResponse processDeleteCourseDetailsRequest
+	(@RequestPayload DeleteCourseDetailsRequest request) {
+		Status status =  service.deleteById(request.getId());
+		DeleteCourseDetailsResponse response = new DeleteCourseDetailsResponse();
+		response.setStatus(mapStatus(status));
+		return response;
+	}
+
+	private com.seanmeedev.courses.Status mapStatus(Status status) {
+		if(status==Status.FAILURE)
+			return com.seanmeedev.courses.Status.FAILURE;
+		return com.seanmeedev.courses.Status.SUCCESS;
 	}
 
 	private GetCourseDetailsResponse mapCourseDetails(Course course) {
@@ -60,14 +109,4 @@ public class CourseDetailsEndpoint {
 		courseDetails.setDescription(course.getDescription());
 		return courseDetails;
 	}
-	
-	@PayloadRoot(namespace = "http://in28minutes.com/courses", 
-			localPart = "GetAllCourseDetailsRequest")	
-	@ResponsePayload
-	public GetAllCourseDetailsResponse processAllCourseDetailsRequest
-	(@RequestPayload GetAllCourseDetailsRequest request) {
-		List<Course> courses = service.findAll();
-		return mapAllCourseDetails(courses);
-	}
-
 }

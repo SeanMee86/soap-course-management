@@ -11,6 +11,10 @@ import com.seanmeedev.soap.services.soapcoursemanagement.soap.bean.Course;
 @Component
 public class CourseDetailsService {
 	
+	public enum Status {
+		SUCCESS, FAILURE;
+	}
+	
 	private static List<Course> courses = new ArrayList<>();
 	
 	static {
@@ -36,13 +40,21 @@ public class CourseDetailsService {
 		return null;
 	}
 	
+	public Status addCourse(Course course) {
+		if(findById(course.getId()) == null) {
+			courses.add(course);
+			return Status.SUCCESS;
+		}
+		return Status.FAILURE;
+	}
+	
 	//courses
 	public List<Course> findAll() {
 		return courses;
 	}
 	
 	//deletecourse
-	public boolean deleteById(int id) {
+	public Status deleteById(int id) {
 		
 		Iterator<Course> iterator = courses.iterator();
 		
@@ -50,10 +62,10 @@ public class CourseDetailsService {
 			Course course = iterator.next();
 			if(course.getId() == id) {
 				iterator.remove();
-				return true;
+				return Status.SUCCESS;
 			}
 		}
-		return false;
+		return Status.FAILURE;
 	}
 	
 	//updating course & new course
